@@ -8,7 +8,7 @@ from app.utils.logger import logger
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 class LLMJudgeService:
-    def __init__(self, api_key: Optional[str] = None, model_name: str = "meta-llama/llama-3-8b-instruct:free"):
+    def __init__(self, api_key: Optional[str] = None, model_name: str = "openrouter/free"):
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         self.model_name = model_name
         self.headers = {
