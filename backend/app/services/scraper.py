@@ -3,11 +3,14 @@ import random
 import time
 import asyncio
 import urllib.parse
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, Tuple
+import tenacity
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_result
 
 import httpx
 from app.utils.logger import logger
 from prometheus_client import Counter, Histogram
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_result, RetryError
 
 SCRAPE_REQUESTS = Counter(
     "flux_scrape_requests_total",
@@ -32,10 +35,24 @@ class ScraperService:
         self.scrapingbee_key = os.getenv("SCRAPINGBEE_API_KEY")
         self.zenrows_key = os.getenv("ZENROWS_API_KEY")
         self.tavily_key = os.getenv("TAVILY_API_KEY")
+        
+        self.provider_health = {
+            "tavily": {"success": 0, "failure": 0},
+            "scrapingbee": {"success": 0, "failure": 0},
+            "zenrows": {"success": 0, "failure": 0},
+            "direct": {"success": 0, "failure": 0}
+        }
 
         if not any([self.scrapingbee_key, self.zenrows_key, self.tavily_key]):
             logger.warning("No scraping API keys found in environment variables")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(httpx.TimeoutException) | retry_if_result(lambda res: res is None),
+        reraise=False,
+        retry_error_callback=lambda retry_state: None
+    )
     async def _fetch_tavily_extract(self, url: str) -> Optional[Dict]:
         start_time = time.time()
         try:
@@ -67,6 +84,13 @@ class ScraperService:
             logger.error(f"Tavily Extract error: {e}")
         return None
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(httpx.TimeoutException) | retry_if_result(lambda res: res is None),
+        reraise=False,
+        retry_error_callback=lambda retry_state: None
+    )
     async def _fetch_tavily(self, query: str, limit: int = 10) -> Optional[Dict]:
         start_time = time.time()
         try:
@@ -100,21 +124,35 @@ class ScraperService:
         return None
 
     async def scrape_url(self, url: str) -> Optional[Union[str, Dict]]:
-        if self.tavily_key:
-            data = await self._fetch_tavily_extract(url)
-            if data: return data
+        # Road to 9/10: Health-aware provider selection
+        providers = []
+        if self.tavily_key: providers.append(("tavily", self._fetch_tavily_extract))
+        if self.scrapingbee_key: providers.append(("scrapingbee", self._fetch_scrapingbee))
+        if self.zenrows_key: providers.append(("zenrows", self._fetch_zenrows))
+        providers.append(("direct", self._fetch_direct))
 
-        html = None
-        if self.scrapingbee_key:
-            html = await self._fetch_scrapingbee(url)
+        # Sort by health (success rate)
+        def get_health_score(p_tuple):
+            p_name = p_tuple[0]
+            stats = self.provider_health.get(p_name, {"success": 0, "failure": 0})
+            total = stats["success"] + stats["failure"]
+            if total == 0: return 1.0 # Default to high for new/unknown
+            return stats["success"] / total
 
-        if not html and self.zenrows_key:
-            html = await self._fetch_zenrows(url)
+        sorted_providers = sorted(providers, key=get_health_score, reverse=True)
 
-        if not html:
-            html = await self._fetch_direct(url)
+        for name, fetch_func in sorted_providers:
+            try:
+                data = await fetch_func(url)
+                if data:
+                    self.provider_health[name]["success"] += 1
+                    return data
+                self.provider_health[name]["failure"] += 1
+            except Exception as e:
+                logger.error(f"Provider {name} failed: {e}")
+                self.provider_health[name]["failure"] += 1
 
-        return html
+        return None
 
     async def scrape_multiple_urls(self, urls: List[str]) -> List[Optional[Union[str, Dict]]]:
         """Scrapes multiple URLs in parallel."""
@@ -152,6 +190,13 @@ class ScraperService:
 
         return final_html
 
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(httpx.TimeoutException),
+        reraise=False,
+        retry_error_callback=lambda retry_state: None
+    )
     async def _fetch_scrapingbee(self, url: str) -> Optional[str]:
         start_time = time.time()
         try:
@@ -184,6 +229,13 @@ class ScraperService:
             logger.error("ScrapingBee error: %s", e)
         return None
 
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type(httpx.TimeoutException),
+        reraise=False,
+        retry_error_callback=lambda retry_state: None
+    )
     async def _fetch_zenrows(self, url: str) -> Optional[str]:
         start_time = time.time()
         try:

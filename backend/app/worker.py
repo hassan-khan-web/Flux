@@ -135,10 +135,16 @@ def scrape_task(
                         # Store in the result
                         if enriched["organic_results"]:
                             text = enriched["organic_results"][0].get("snippet", "")
+                            
+                            # Road to 9/10: AI Final Polish for top 3 results
+                            if i < 3:
+                                logger.info(f"Applying AI Polish to result {i+1}...")
+                                text = loop.run_until_complete(llm_judge.refine_snippet(query, text))
+                            
                             formatted_data["organic_results"][i]["full_content"] = text
                             # Also update snippet if snippet was too short before
                             if len(text) > len(formatted_data["organic_results"][i].get("snippet", "")):
-                                formatted_data["organic_results"][i]["snippet"] = text[:300] + "..."
+                                formatted_data["organic_results"][i]["snippet"] = text[:350] + "..."
             except Exception as e:
                 logger.error("Deep scrape enrichment failed: %s", e)
 

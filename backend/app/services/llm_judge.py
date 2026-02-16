@@ -99,6 +99,48 @@ class LLMJudgeService:
         ]
         return await self._call_api(messages)
 
+    async def refine_snippet(self, query: str, snippet: str) -> str:
+        """Refines and cleans a snippet using the LLM to remove boiler plate."""
+        if not self.api_key:
+            return snippet
+
+        system_prompt = "You are a content refiner. Remove UI boilerplate, cookie warnings, and navigation text. Preserve the main content."
+        user_prompt = f"""
+        Query: "{query}"
+        
+        Snippet:
+        {snippet}
+        
+        Task: 
+        1. Remove any remaining UI junk (Sign in, Cookies, Subscribe, Navigation).
+        2. Clean up malformed markdown.
+        3. Keep the content relevant to the query.
+        4. Output ONLY the refined text.
+        """
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ]
+        
+        # We don't use response_format="json" here because we want raw text
+        payload = {
+            "model": self.model_name,
+            "messages": messages,
+            "max_tokens": 500
+        }
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(OPENROUTER_URL, headers=self.headers, json=payload, timeout=20.0)
+                if response.status_code == 200:
+                    refined = response.json().get("choices", [{}])[0].get("message", {}).get("content", snippet)
+                    return refined.strip()
+        except Exception as e:
+            logger.error("Snippet refinement failed: %s", e)
+        
+        return snippet
+
     async def evaluate_credibility(self, query: str, results: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Evaluates the credibility of the sources."""
         sources_text = []

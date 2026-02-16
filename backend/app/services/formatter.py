@@ -2,6 +2,8 @@ from typing import Dict, List, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from app.utils.logger import logger
+from app.services.embeddings import embeddings_service
+import numpy as np
 
 class FormatterService:
     def format_response(self, query: str, parsed_data: Dict) -> Dict:
@@ -34,14 +36,22 @@ class FormatterService:
             if all(not s.strip() for s in snippets):
                 return results
 
-            vectorizer = TfidfVectorizer().fit_transform(snippets)
-            vectors = vectorizer.toarray()
+            # Road to 9/10: Semantic Deduplication
+            # Generate vectors for all snippets
+            vectors = embeddings_service.generate(snippets)
+            if not vectors:
+                logger.warning("Embeddings failed, falling back to lexical deduplication")
+                vectorizer = TfidfVectorizer().fit_transform(snippets)
+                vectors = vectorizer.toarray()
+            else:
+                vectors = np.array(vectors)
 
             kept_indices: List[int] = []
 
             for i in range(len(results)):
                 is_duplicate = False
                 for j in kept_indices:
+                    # Cosine similarity between vectors
                     sim = cosine_similarity([vectors[i]], [vectors[j]])[0][0]
                     if sim > threshold:
                         is_duplicate = True
