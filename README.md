@@ -54,16 +54,91 @@ Flux focuses exclusively on the acquisition layer—delivering clean, enriched d
 
 ---
 
-## ⚡ Process Pipeline
+## ⚡ System Architecture
 
-Flux operates on a high-throughput, asynchronous multi-phase pipeline:
-
-1.  **Acquisition (IO-Bound)**: Performs hybrid retrieval via API-based search and headless browser scraping.
-2.  **Extraction & Cleaning**: `ParserService` strips navigation, ads, and scripts, preserving semantic structure while extracting metadata (Author, Date, Source).
-3.  **AI Final Polish**: Top results are refined by the LLM to remove residual "web noise" and ensure AI-ready clarity.
-4.  **Semantic Structuring (CPU-Bound)**: `ChunkerService` segments text into overlapping chunks, and `EmbeddingsService` generates vectors.
-5.  **Scoring & Validation**: The `LLM Judge` evaluates the entire response for **Relevance** and **Source Credibility**.
-6.  **Delivery**: Results are delivered via structured JSON or AI-ready Markdown, ready for RAG or direct LLM injection.
+```text
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                KNOWLEDGE ACQUISITION REQUEST                                │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+                                               │
+                                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                          FLUX API                                           │
+│                                    (Orchestration Layer)                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                             │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                   QUERY HYDRATION                                   │   │
+│   │  ┌──────────────────────────┐    ┌──────────────────────────────────────────────┐   │   │
+│   │  │ Cache Check              │    │ Parameter Normalization                      │   │   │
+│   │  │ (Redis LRU)              │    │ (Region, Language, Limit)                    │   │   │
+│   │  └──────────────────────────┘    └──────────────────────────────────────────────┘   │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                              │                                              │
+│                                              ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                  CANDIDATE SOURCES                                  │   │
+│   │         ┌─────────────────────────────┐    ┌────────────────────────────────┐       │   │
+│   │         │        HYBRID SEARCH        │    │        DEEP SCRAPE             │       │   │
+│   │         │    (In-Network Results)     │    │     (Out-of-Network Data)      │       │   │
+│   │         │                             │    │                                │       │   │
+│   │         │  API-based retrieval        │    │  Headless browser sessions     │       │   │
+│   │         │  (Tavily / Serp API)        │    │  bypassing web protection      │       │   │
+│   │         └─────────────────────────────┘    └────────────────────────────────┘       │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                              │                                              │
+│                                              ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                               EXOTIC EXTRACTION                                     │   │
+│   │  Fetch additional data: author info, publish dates, full-text markdown cleaning.    │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                              │                                              │
+│                                              ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                      FILTERING                                      │   │
+│   │  Remove: duplicates, SEO noise, navigation elements, ads, and boilerplate content.  │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                              │                                              │
+│                                              ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                       SCORING                                       │   │
+│   │  ┌──────────────────────────┐                                                       │   │
+│   │  │  AI Final Polish         │    LLM-based evaluation predicts:                     │   │
+│   │  │  (Noise Removal)         │    Relevance, Source Credibility, Fact Density...     │   │
+│   │  └──────────────────────────┘                                                       │   │
+│   │               │                                                                     │   │
+│   │               ▼                                                                     │   │
+│   │  ┌──────────────────────────┐                                                       │   │
+│   │  │  Weighted Scorer         │    Weighted Score = Σ (weight × Metrics)              │   │
+│   │  │  (Relevance Reasoning)   │                                                       │   │
+│   │  └──────────────────────────┘                                                       │   │
+│   │               │                                                                     │   │
+│   │               ▼                                                                     │   │
+│   │  ┌──────────────────────────┐                                                       │   │
+│   │  │  Semantic Chunker        │    Recursive character-splitting for                  │   │
+│   │  │  (RAG Readiness)         │    overlapping context preservation                   │   │
+│   │  └──────────────────────────┘                                                       │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                              │                                              │
+│                                              ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                                      SELECTION                                      │   │
+│   │                    Sort by final score, select top K candidates                     │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                              │                                              │
+│                                              ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────────────────────────────┐   │
+│   │                              FILTERING (Post-Selection)                             │   │
+│   │                 Final sanity checks (content safety / deduplication)                │   │
+│   └─────────────────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+                                               │
+                                               ▼
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                    STRUCTURED KNOWLEDGE                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
