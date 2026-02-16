@@ -16,6 +16,8 @@ class OrganicResult(BaseModel):
     score: Optional[float] = 0.0
     full_content: Optional[str] = None
     embedding: Optional[List[float]] = None
+    author: Optional[str] = None
+    date: Optional[str] = None
     is_polished: bool = False
 
 class SearchResponse(BaseModel):
@@ -37,3 +39,16 @@ class TaskResponse(BaseModel):
     status: str
     result: Optional[SearchResponse] = None
     error: Optional[str] = None
+
+class ChunkRequest(BaseModel):
+    text: str
+    chunk_size: Optional[int] = 1000
+    chunk_overlap: Optional[int] = 200
+
+class ChunkResponse(BaseModel):
+    chunks: List[str]
+    count: int
+
+class ExtractRequest(BaseModel):
+    url: str
+    mode: Optional[str] = "extract" # "extract" or "scrape" (deep)

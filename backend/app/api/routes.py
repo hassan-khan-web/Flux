@@ -4,11 +4,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi_limiter.depends import RateLimiter
 from celery.result import AsyncResult
 from celery import chain
-from app.api.schemas import SearchRequest, SearchResponse, TaskResponse
+from app.api.schemas import SearchRequest, SearchResponse, TaskResponse, ChunkRequest, ChunkResponse, ExtractRequest
 from app.worker import scrape_task, embed_task
 from app.utils.logger import logger
+from app.services.chunker import chunker
 
-router: APIRouter = APIRouter()
+router: APIRouter = APIRouter(prefix="/v1")
 
 RATE_LIMIT_TIMES = int(os.getenv("RATE_LIMIT_TIMES", "5"))
 RATE_LIMIT_SECONDS = int(os.getenv("RATE_LIMIT_SECONDS", "60"))
@@ -74,3 +75,34 @@ async def get_task_status(task_id: str) -> TaskResponse:
     except Exception as e:
         logger.error("Task status error: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+@router.post("/extract", response_model=TaskResponse, status_code=202)
+async def extract_endpoint(request: ExtractRequest) -> TaskResponse:
+    """Standalone endpoint for content extraction (Fast Mode)"""
+    try:
+        task = scrape_task.apply_async(args=[request.url, "us", "en", 1, "scrape"])
+        return TaskResponse(task_id=task.id, status="pending")
+    except Exception as e:
+        logger.error("Extract endpoint error: %s", e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.post("/deep_scrape", response_model=TaskResponse, status_code=202)
+async def deep_scrape_endpoint(request: ExtractRequest) -> TaskResponse:
+    """Standalone endpoint for deep scraping (Headless Mode)"""
+    try:
+        # Currently same worker, but mode='scrape' trigger the extraction pipeline
+        task = scrape_task.apply_async(args=[request.url, "us", "en", 1, "scrape"])
+        return TaskResponse(task_id=task.id, status="pending")
+    except Exception as e:
+        logger.error("Deep scrape endpoint error: %s", e)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@router.post("/chunk", response_model=ChunkResponse)
+async def chunk_endpoint(request: ChunkRequest) -> ChunkResponse:
+    """Synchronous utility for text chunking"""
+    try:
+        chunks = chunker.chunk_text(request.text, request.chunk_size, request.chunk_overlap)
+        return ChunkResponse(chunks=chunks, count=len(chunks))
+    except Exception as e:
+        logger.error("Chunk endpoint error: %s", e)
+        raise HTTPException(status_code=500, detail="Chunking Failed")

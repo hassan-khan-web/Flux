@@ -165,6 +165,40 @@ class ParserService:
         logger.info(f"Default score 0.5 assigned to: {url}")
         return 0.5
 
+    def _extract_metadata(self, soup: BeautifulSoup) -> Dict:
+        """Extracts publication date and author from meta tags."""
+        metadata = {"date": None, "author": None}
+        
+        # Date patterns
+        date_tags = [
+            ("meta", {"property": "article:published_time"}),
+            ("meta", {"name": "pubdate"}),
+            ("meta", {"name": "publish_date"}),
+            ("meta", {"name": "dc.date"}),
+            ("meta", {"property": "og:published_time"}),
+            ("time", {"datetime": True})
+        ]
+        for tag, attrs in date_tags:
+            found = soup.find(tag, attrs=attrs)
+            if found:
+                metadata["date"] = found.get("content") or found.get("datetime")
+                break
+        
+        # Author patterns
+        author_tags = [
+            ("meta", {"name": "author"}),
+            ("meta", {"property": "article:author"}),
+            ("meta", {"name": "twitter:creator"}),
+            ("meta", {"name": "dc.creator"})
+        ]
+        for tag, attrs in author_tags:
+            found = soup.find(tag, attrs=attrs)
+            if found:
+                metadata["author"] = found.get("content")
+                break
+                
+        return metadata
+
     def parse_url_content(self, content: Union[str, Dict]) -> Dict:
         """
         Parses content from a specific URL (scraped/extracted).
@@ -178,13 +212,24 @@ class ParserService:
 
             cleaned_snippet = self._clean_text(text_content)
 
+            title = content.get("title", "Extracted Content")
+            url = content.get("url", "")
+            
+            # Enrich with HTML metadata if raw content exists
+            meta = {"date": None, "author": None}
+            if content.get("raw_content"):
+                soup = BeautifulSoup(content["raw_content"], 'html.parser')
+                meta = self._extract_metadata(soup)
+
             return {
                 "ai_overview": None,
                 "organic_results": [{
-                    "title": "Extracted Content",
-                    "url": content.get("url", ""),
+                    "title": title,
+                    "url": url,
                     "snippet": cleaned_snippet,
-                    "score": self._calculate_credibility(content.get("url", ""))
+                    "score": self._calculate_credibility(url),
+                    "author": meta.get("author"),
+                    "date": meta.get("date")
                 }]
             }
 
@@ -196,13 +241,19 @@ class ParserService:
 
         cleaned_snippet = self._clean_text(extracted_text)
 
+        soup = BeautifulSoup(content, 'html.parser')
+        meta = self._extract_metadata(soup)
+        title = soup.title.string if soup.title else "Scraped Page"
+
         return {
             "ai_overview": None,
             "organic_results": [{
-                "title": "Scraped Page",
+                "title": title,
                 "url": "",
                 "snippet": (cleaned_snippet or "")[:15000],
-                "score": 0.5
+                "score": 0.5,
+                "author": meta.get("author"),
+                "date": meta.get("date")
             }]
         }
 

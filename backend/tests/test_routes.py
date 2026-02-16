@@ -27,7 +27,7 @@ class TestSearchEndpoint:
             mock_chain.return_value = mock_chain_instance
 
             response = client.post(
-                "/search",
+                "/v1/search",
                 json={
                     "query": "python programming",
                     "region": "us",
@@ -55,7 +55,7 @@ class TestSearchEndpoint:
             mock_chain.return_value = mock_chain_instance
 
             response = client.post(
-                "/search",
+                "/v1/search",
                 json={"query": "test query"}
             )
 
@@ -72,7 +72,7 @@ class TestSearchEndpoint:
             mock_chain.side_effect = Exception("Connection failed")
 
             response = client.post(
-                "/search",
+                "/v1/search",
                 json={"query": "test"}
             )
 
@@ -83,7 +83,7 @@ class TestSearchEndpoint:
     def test_search_endpoint_missing_query(self, mock_limiter):
         """Test validation: query is required"""
         response = client.post(
-            "/search",
+            "/v1/search",
             json={
                 "region": "us"
             }
@@ -103,8 +103,7 @@ class TestGetTaskStatus:
             mock_result.ready.return_value = False
             mock_async_result.return_value = mock_result
 
-            response = client.get("/tasks/test-task-123")
-
+            response = client.get("/v1/tasks/test-task-123")
             assert response.status_code == 200
             data = response.json()
             assert data["task_id"] == "test-task-123"
@@ -130,11 +129,15 @@ class TestGetTaskStatus:
                     }
                 ],
                 "formatted_output": "",
-                "token_estimate": 150
+                "token_estimate": 150,
+                "deduplicated_count": 0,
+                "provider_health": {},
+                "relevance_score": 0.9,
+                "relevance_reasoning": "Good"
             }
             mock_async_result.return_value = mock_result
 
-            response = client.get("/tasks/test-task-123")
+            response = client.get("/v1/tasks/test-task-123")
 
             assert response.status_code == 200
             data = response.json()
@@ -156,7 +159,7 @@ class TestGetTaskStatus:
             }
             mock_async_result.return_value = mock_result
 
-            response = client.get("/tasks/test-task-123")
+            response = client.get("/v1/tasks/test-task-123")
 
             assert response.status_code == 200
             data = response.json()
@@ -173,7 +176,7 @@ class TestGetTaskStatus:
             mock_result.result = Exception("Database error")
             mock_async_result.return_value = mock_result
 
-            response = client.get("/tasks/test-task-123")
+            response = client.get("/v1/tasks/test-task-123")
 
             assert response.status_code == 200
             data = response.json()
@@ -185,7 +188,7 @@ class TestGetTaskStatus:
         with patch("app.api.routes.AsyncResult") as mock_async_result:
             mock_async_result.side_effect = Exception("Redis connection failed")
 
-            response = client.get("/tasks/test-task-123")
+            response = client.get("/v1/tasks/test-task-123")
 
             assert response.status_code == 500
             assert "Redis connection failed" in response.json()["detail"]
@@ -198,7 +201,7 @@ class TestGetTaskStatus:
             mock_result.ready.return_value = False
             mock_async_result.return_value = mock_result
 
-            response = client.get("/tasks/test-task-123")
+            response = client.get("/v1/tasks/test-task-123")
 
             assert response.status_code == 200
             data = response.json()

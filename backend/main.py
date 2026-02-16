@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 from app.api.routes import router
+from app.api.schemas import SearchRequest
 from app.utils.logger import logger
 
 load_dotenv()
@@ -69,7 +70,12 @@ if os.path.isdir(STATIC_DIR):
 async def read_index() -> FileResponse:
     return FileResponse(os.path.join(STATIC_DIR, 'index.html'))
 
-app.include_router(router)
+app.include_router(router, prefix="/api")
+
+@app.post("/search")
+async def root_search(request: SearchRequest):
+    from app.api.routes import search_endpoint
+    return await search_endpoint(request)
 
 @app.on_event("startup")
 async def startup_event() -> None:
