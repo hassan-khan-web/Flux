@@ -35,7 +35,7 @@ class FormatterService:
         try:
             snippets = [r.get("snippet", "") for r in results]
             if all(not s.strip() for s in snippets):
-                return results
+                return results, 0
 
             # Road to 9/10: Semantic Deduplication
             # Generate vectors for all snippets
