@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Any
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from app.utils.logger import logger
@@ -12,7 +12,7 @@ class FormatterService:
 
         unique_results, dedup_count = self._deduplicate_results(organic)
 
-        markdown_output = self._generate_markdown(query, ai_overview or "", unique_results)
+        markdown_output = self._generate_markdown(query, ai_overview or "", list(unique_results))
 
         token_count = self._estimate_tokens(markdown_output)
 
@@ -25,7 +25,7 @@ class FormatterService:
             "deduplicated_count": dedup_count
         }
 
-    def _deduplicate_results(self, results: List[Dict], threshold: float = 0.85) -> List[Dict]:
+    def _deduplicate_results(self, results: List[Dict], threshold: float = 0.85) -> Tuple[List[Dict[str, Any]], int]:
         if not results:
             return [], 0
 
@@ -45,7 +45,7 @@ class FormatterService:
                 vectorizer = TfidfVectorizer().fit_transform(snippets)
                 vectors = vectorizer.toarray()
             else:
-                vectors = np.array(vectors)
+                vectors = np.array(vectors, dtype=float).tolist()
 
             kept_indices: List[int] = []
 

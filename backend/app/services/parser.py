@@ -1,6 +1,6 @@
 import re
 import urllib.parse
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, cast, Any
 
 import trafilatura
 from bs4 import BeautifulSoup, Tag
@@ -167,7 +167,7 @@ class ParserService:
 
     def _extract_metadata(self, soup: BeautifulSoup) -> Dict:
         """Extracts publication date and author from meta tags."""
-        metadata = {"date": None, "author": None}
+        metadata: Dict[str, Optional[str]] = {"date": None, "author": None}
         
         # Date patterns
         date_tags = [
@@ -179,9 +179,9 @@ class ParserService:
             ("time", {"datetime": True})
         ]
         for tag, attrs in date_tags:
-            found = soup.find(tag, attrs=attrs)
-            if found:
-                metadata["date"] = found.get("content") or found.get("datetime")
+            found = soup.find(tag, attrs=cast(Dict[str, Any], attrs))
+            if isinstance(found, Tag):
+                metadata["date"] = cast(Optional[str], found.get("content") or found.get("datetime"))
                 break
         
         # Author patterns
@@ -192,9 +192,9 @@ class ParserService:
             ("meta", {"name": "dc.creator"})
         ]
         for tag, attrs in author_tags:
-            found = soup.find(tag, attrs=attrs)
-            if found:
-                metadata["author"] = found.get("content")
+            found = soup.find(tag, attrs=cast(Dict[str, Any], attrs))
+            if isinstance(found, Tag):
+                metadata["author"] = str(found.get("content"))
                 break
                 
         return metadata

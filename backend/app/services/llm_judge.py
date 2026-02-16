@@ -2,7 +2,7 @@ import os
 import json
 import httpx
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, cast
 from app.utils.logger import logger
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -62,7 +62,7 @@ class LLMJudgeService:
                                 else:
                                     result["score"] = 0.0
                             
-                            return result
+                            return cast(Dict[str, Any], result)
                         except Exception as e:
                             logger.error("JSON Extraction/Parse Error: %s | Raw: %s", e, content)
                             return {"score": 0.0, "reasoning": "Parse Error"}
@@ -144,7 +144,7 @@ class LLMJudgeService:
                 response = await client.post(OPENROUTER_URL, headers=self.headers, json=payload, timeout=20.0)
                 if response.status_code == 200:
                     refined = response.json().get("choices", [{}])[0].get("message", {}).get("content", snippet)
-                    return refined.strip()
+                    return cast(str, refined.strip())
         except Exception as e:
             logger.error("Snippet refinement failed: %s", e)
         

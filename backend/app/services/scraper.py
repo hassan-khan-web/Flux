@@ -3,7 +3,7 @@ import random
 import time
 import asyncio
 import urllib.parse
-from typing import Any, Dict, List, Optional, Union, Tuple
+from typing import Any, Dict, List, Optional, Union, Tuple, cast
 import tenacity
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type, retry_if_result
 
@@ -125,7 +125,7 @@ class ScraperService:
 
     async def scrape_url(self, url: str) -> Optional[Union[str, Dict]]:
         # Road to 9/10: Health-aware provider selection
-        providers = []
+        providers: List[Tuple[str, Any]] = []
         if self.tavily_key: providers.append(("tavily", self._fetch_tavily_extract))
         if self.scrapingbee_key: providers.append(("scrapingbee", self._fetch_scrapingbee))
         if self.zenrows_key: providers.append(("zenrows", self._fetch_zenrows))
@@ -146,7 +146,7 @@ class ScraperService:
                 data = await fetch_func(url)
                 if data:
                     self.provider_health[name]["success"] += 1
-                    return data
+                    return cast(Optional[Union[str, Dict[Any, Any]]], data)
                 self.provider_health[name]["failure"] += 1
             except Exception as e:
                 logger.error(f"Provider {name} failed: {e}")

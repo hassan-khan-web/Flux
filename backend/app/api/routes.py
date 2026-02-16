@@ -101,7 +101,11 @@ async def deep_scrape_endpoint(request: ExtractRequest) -> TaskResponse:
 async def chunk_endpoint(request: ChunkRequest) -> ChunkResponse:
     """Synchronous utility for text chunking"""
     try:
-        chunks = chunker.chunk_text(request.text, request.chunk_size, request.chunk_overlap)
+        chunks = chunker.chunk_text(
+            request.text, 
+            request.chunk_size or 1000, 
+            request.chunk_overlap or 200
+        )
         return ChunkResponse(chunks=chunks, count=len(chunks))
     except Exception as e:
         logger.error("Chunk endpoint error: %s", e)

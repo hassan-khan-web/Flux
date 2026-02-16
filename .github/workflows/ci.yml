@@ -110,7 +110,7 @@ jobs:
         PYTHONPATH: ${{ github.workspace }}/backend
       run: |
         # Start the API in background
-        PYTHONPATH=backend python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+        PYTHONPATH=backend python -m uvicorn main:app --host 0.0.0.0 --port 8000 &
         
         # Wait for API to be ready
         timeout 60s bash -c 'until curl -s http://localhost:8000/health; do sleep 2; done'
