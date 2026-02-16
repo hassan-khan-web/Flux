@@ -227,9 +227,9 @@ class TestFormatterService:
             ]
         }
 
-        result = formatter.format_response("query", parsed_data)
+        result, dedup_count = formatter._deduplicate_results(parsed_data["organic_results"])
 
-        assert len(result["organic_results"]) >= 1
+        assert len(result) >= 1
 
     def test_format_response_markdown_generation(self, formatter):
         """Test markdown output generation"""

@@ -16,6 +16,7 @@ class OrganicResult(BaseModel):
     score: Optional[float] = 0.0
     full_content: Optional[str] = None
     embedding: Optional[List[float]] = None
+    is_polished: bool = False
 
 class SearchResponse(BaseModel):
     query: str
@@ -23,6 +24,8 @@ class SearchResponse(BaseModel):
     organic_results: List[OrganicResult] = []
     formatted_output: str
     token_estimate: int
+    deduplicated_count: int = 0
+    provider_health: Dict[str, Any] = {}
     relevance_score: Optional[float] = 0.0
     relevance_reasoning: Optional[str] = None
     credibility_score: Optional[float] = 0.0

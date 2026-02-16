@@ -95,6 +95,8 @@
                 <div class="panel-header">
                     <span>LLM-Ready Context (Markdown)</span>
                     <div class="header-stats">
+                        <span class="badge dedup-badge hidden" id="dedupStat" title="Redundant results removed">0
+                            Filtered</span>
                         <span class="badge score-badge" id="relevanceScore" title="Relevance Score">Rel: --</span>
                         <span class="badge score-badge" id="credibilityScore" title="Source Credibility">Cred: --</span>
                         <span class="badge token-stat" id="tokenStat">0 Tokens</span>
@@ -106,7 +108,10 @@
             <div class="panel">
                 <div class="panel-header">
                     <span>Structured API Response (JSON)</span>
-                    <span class="badge" id="statusBadge">Idle</span>
+                    <div class="header-stats">
+                        <span class="health-dot" id="healthDot" title="Scraper Health"></span>
+                        <span class="badge" id="statusBadge">Idle</span>
+                    </div>
                 </div>
                 <div class="panel-content" id="jsonOutput">// Waiting for input...</div>
             </div>

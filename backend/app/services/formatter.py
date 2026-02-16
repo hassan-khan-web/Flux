@@ -10,7 +10,7 @@ class FormatterService:
         organic = parsed_data.get("organic_results", [])
         ai_overview = parsed_data.get("ai_overview")
 
-        unique_results = self._deduplicate_results(organic)
+        unique_results, dedup_count = self._deduplicate_results(organic)
 
         markdown_output = self._generate_markdown(query, ai_overview or "", unique_results)
 
@@ -21,15 +21,16 @@ class FormatterService:
             "ai_overview": ai_overview,
             "organic_results": unique_results,
             "formatted_output": markdown_output,
-            "token_estimate": token_count
+            "token_estimate": token_count,
+            "deduplicated_count": dedup_count
         }
 
     def _deduplicate_results(self, results: List[Dict], threshold: float = 0.85) -> List[Dict]:
         if not results:
-            return []
+            return [], 0
 
         if len(results) == 1:
-            return results
+            return results, 0
 
         try:
             snippets = [r.get("snippet", "") for r in results]
@@ -60,11 +61,12 @@ class FormatterService:
                 if not is_duplicate:
                     kept_indices.append(i)
 
-            return [results[i] for i in kept_indices]
+            dedup_count = len(results) - len(kept_indices)
+            return [results[i] for i in kept_indices], dedup_count
 
         except Exception as e:
             logger.error(f"Deduplication failed: {e}")
-            return results
+            return results, 0
 
     def _generate_markdown(self, query: str, ai_overview: Optional[str], results: List[Dict]) -> str:
         md = [f"# Search Results for: {query}\n"]
@@ -78,8 +80,12 @@ class FormatterService:
         for idx, res in enumerate(sorted_results, 1):
             score = res.get("score", 0.0)
             score_label = f"(Credibility Score: {score})" if score > 0 else ""
+            
+            # Road to 9/10: Polished Badge
+            is_polished = res.get("is_polished", False)
+            polished_label = " ✨ *[Polished by AI]*" if is_polished else ""
 
-            md.append(f"### {idx}. {res.get('title', 'No Title')} {score_label}")
+            md.append(f"### {idx}. {res.get('title', 'No Title')} {polished_label} {score_label}")
             md.append(f"URL: {res.get('url', 'No URL')}")
             
             content = res.get('full_content') or res.get('snippet', '')

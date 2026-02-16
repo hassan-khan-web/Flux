@@ -18,6 +18,8 @@ const tokenStat = document.getElementById('tokenStat') as HTMLElement;
 const vectorStat = document.getElementById('vectorStat') as HTMLElement;
 const statusBadge = document.getElementById('statusBadge') as HTMLElement;
 const queryInput = document.getElementById('queryInput') as HTMLInputElement;
+const dedupStat = document.getElementById('dedupStat') as HTMLElement;
+const healthDot = document.getElementById('healthDot') as HTMLElement;
 
 const formatDropdownBtn = document.getElementById('formatDropdownBtn') as HTMLElement;
 const formatDropdownMenu = document.getElementById('formatDropdownMenu') as HTMLElement;
@@ -232,6 +234,35 @@ async function performSearch(): Promise<void> {
         }
 
         statusBadge.textContent = response.ok ? (data.cached ? 'Cached ⚡' : 'Live 🟢') : 'Error 🔴';
+
+        // Road to 9/10: New UI Indicators
+        if (dedupStat) {
+            if (data.deduplicated_count > 0) {
+                dedupStat.textContent = `${data.deduplicated_count} Filtered`;
+                dedupStat.classList.remove('hidden');
+            } else {
+                dedupStat.classList.add('hidden');
+            }
+        }
+
+        if (healthDot && data.provider_health) {
+            let totalSuccess = 0;
+            let totalFailure = 0;
+            Object.values(data.provider_health).forEach((h: any) => {
+                totalSuccess += h.success || 0;
+                totalFailure += h.failure || 0;
+            });
+
+            const total = totalSuccess + totalFailure;
+            const rate = total > 0 ? totalSuccess / total : 1.0;
+
+            healthDot.className = 'health-dot';
+            if (rate > 0.9) healthDot.classList.add('health-good');
+            else if (rate > 0.5) healthDot.classList.add('health-warning');
+            else healthDot.classList.add('health-critical');
+
+            healthDot.title = `Scraper Health: ${Math.round(rate * 100)}% (${totalSuccess}/${total})`;
+        }
 
     } catch (err: any) {
         mdOutput.textContent = "Error connecting to API.";

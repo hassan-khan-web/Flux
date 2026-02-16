@@ -47,6 +47,7 @@ h1 {
     font-weight: 800;
     background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.5rem;
 }
@@ -238,9 +239,55 @@ button.run-btn:disabled {
     background: rgba(88, 166, 255, 0.1);
 }
 
-.score-high { color: #7ee787; background: rgba(46, 160, 67, 0.15); }
-.score-med { color: #d29922; background: rgba(187, 128, 9, 0.15); }
-.score-low { color: #f85149; background: rgba(248, 81, 73, 0.15); }
+.score-high {
+    color: #7ee787;
+    background: rgba(46, 160, 67, 0.15);
+}
+
+.score-med {
+    color: #d29922;
+    background: rgba(187, 128, 9, 0.15);
+}
+
+.score-low {
+    color: #f85149;
+    background: rgba(248, 81, 73, 0.15);
+}
+
+.dedup-badge {
+    color: #a5b4fc;
+    background: rgba(165, 180, 252, 0.15);
+    border: 1px solid rgba(165, 180, 252, 0.2);
+}
+
+.health-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #6e7681;
+    display: inline-block;
+    box-shadow: 0 0 8px rgba(110, 118, 129, 0.3);
+    transition: all 0.3s ease;
+}
+
+.health-good {
+    background-color: #238636;
+    box-shadow: 0 0 8px rgba(35, 134, 54, 0.5);
+}
+
+.health-warning {
+    background-color: #d29922;
+    box-shadow: 0 0 8px rgba(187, 128, 9, 0.5);
+}
+
+.health-critical {
+    background-color: #f85149;
+    box-shadow: 0 0 8px rgba(248, 81, 73, 0.5);
+}
+
+.hidden {
+    display: none !important;
+}
 
 .panel-content {
     flex: 1;

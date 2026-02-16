@@ -300,4 +300,7 @@ class ScraperService:
 
         return True
 
+    def get_health(self) -> Dict[str, Dict[str, int]]:
+        return self.provider_health
+
 scraper = ScraperService()

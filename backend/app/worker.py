@@ -140,6 +140,7 @@ def scrape_task(
                             if i < 3:
                                 logger.info(f"Applying AI Polish to result {i+1}...")
                                 text = loop.run_until_complete(llm_judge.refine_snippet(query, text))
+                                formatted_data["organic_results"][i]["is_polished"] = True
                             
                             formatted_data["organic_results"][i]["full_content"] = text
                             # Also update snippet if snippet was too short before
@@ -153,7 +154,9 @@ def scrape_task(
         "ai_overview": formatted_data["ai_overview"],
         "organic_results": formatted_data["organic_results"],
         "formatted_output": formatted_data["formatted_output"],
-        "token_estimate": formatted_data["token_estimate"]
+        "token_estimate": formatted_data["token_estimate"],
+        "deduplicated_count": formatted_data.get("deduplicated_count", 0),
+        "provider_health": scraper.get_health()
     }
 
     return result
