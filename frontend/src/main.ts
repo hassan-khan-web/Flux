@@ -215,22 +215,28 @@ async function performSearch(): Promise<void> {
             tokenStat.textContent = `~${data.token_estimate} Tokens`;
         }
 
-        // Scoring Logic
-        const relBadge = document.getElementById('relevanceScore');
-        const credBadge = document.getElementById('credibilityScore');
+        // Scoring Logic (Global Sync)
+        const relBadges = document.querySelectorAll('.relevance-score');
+        const credBadges = document.querySelectorAll('.credibility-score');
 
-        if (relBadge && data.relevance_score !== undefined) {
+        if (data.relevance_score !== undefined) {
             const score = data.relevance_score;
-            relBadge.textContent = `Rel: ${Math.round(score * 100)}%`;
-            relBadge.title = data.relevance_reasoning || "Relevance Score";
-            relBadge.className = 'badge score-badge ' + (score > 0.7 ? 'score-high' : score > 0.4 ? 'score-med' : 'score-low');
+            relBadges.forEach(badge => {
+                const el = badge as HTMLElement;
+                el.textContent = `Rel: ${Math.round(score * 100)}%`;
+                el.title = data.relevance_reasoning || "Relevance Score";
+                el.className = 'badge score-badge relevance-score ' + (score > 0.7 ? 'score-high' : score > 0.4 ? 'score-med' : 'score-low');
+            });
         }
 
-        if (credBadge && data.credibility_score !== undefined) {
+        if (data.credibility_score !== undefined) {
             const score = data.credibility_score;
-            credBadge.textContent = `Cred: ${Math.round(score * 100)}%`;
-            credBadge.title = data.credibility_reasoning || "Source Credibility";
-            credBadge.className = 'badge score-badge ' + (score > 0.7 ? 'score-high' : score > 0.4 ? 'score-med' : 'score-low');
+            credBadges.forEach(badge => {
+                const el = badge as HTMLElement;
+                el.textContent = `Cred: ${Math.round(score * 100)}%`;
+                el.title = data.credibility_reasoning || "Source Credibility";
+                el.className = 'badge score-badge credibility-score ' + (score > 0.7 ? 'score-high' : score > 0.4 ? 'score-med' : 'score-low');
+            });
         }
 
         statusBadge.textContent = response.ok ? (data.cached ? 'Cached ⚡' : 'Live 🟢') : 'Error 🔴';

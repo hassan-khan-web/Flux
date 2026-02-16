@@ -26,7 +26,6 @@ class LLMJudgeService:
         payload = {
             "model": self.model_name,
             "messages": messages,
-            "response_format": {"type": "json_object"},
             "max_tokens": 1000
         }
         
@@ -46,16 +45,26 @@ class LLMJudgeService:
                     if response.status_code == 200:
                         content = response.json().get("choices", [{}])[0].get("message", {}).get("content", "{}")
                         try:
-                            # Clean up potential markdown code blocks
-                            if "```json" in content:
-                                content = content.split("```json")[1].split("```")[0].strip()
-                            elif "```" in content:
-                                content = content.split("```")[1].split("```")[0].strip()
-                                
-                            result = json.loads(content)
+                            # Robust JSON Extraction
+                            import re
+                            json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                            if json_match:
+                                result = json.loads(json_match.group())
+                            else:
+                                result = json.loads(content)
+                            
+                            # Ensure we have required keys
+                            if "score" not in result:
+                                # Try to find a number in the text if JSON failed
+                                scores = re.findall(r'(\d+\.\d+|\d+)', content)
+                                if scores:
+                                    result["score"] = float(scores[0]) if float(scores[0]) <= 1.0 else float(scores[0])/100.0
+                                else:
+                                    result["score"] = 0.0
+                            
                             return result
-                        except json.JSONDecodeError:
-                            logger.error("JSON Decode Error in LLM result: %s", content)
+                        except Exception as e:
+                            logger.error("JSON Extraction/Parse Error: %s | Raw: %s", e, content)
                             return {"score": 0.0, "reasoning": "Parse Error"}
                     
                     elif response.status_code == 429:
