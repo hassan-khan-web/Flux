@@ -4,14 +4,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from fastapi_limiter import FastAPILimiter
 import redis.asyncio as redis
 from app.api.routes import router
 from app.api.schemas import SearchRequest
 from app.utils.logger import logger
 
-load_dotenv()
+load_dotenv(find_dotenv())
 
 BASE_DIR: str = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR: str = os.path.join(BASE_DIR, "app/static")

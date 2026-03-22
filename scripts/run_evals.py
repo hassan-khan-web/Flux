@@ -5,10 +5,10 @@ import os
 import httpx
 import statistics
 from typing import List, Dict, Any, Optional
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 # Load environment variables
-load_dotenv()
+load_dotenv(find_dotenv())
 
 API_URL = "http://localhost:8000/search"
 DATASET_PATH = "backend/tests/evals/dataset.json"
