@@ -12,10 +12,7 @@ services:
           name: flux-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: flux-redis
-          property: connectionString
+        sync: false
       - key: POSTGRES_DB
         value: flux_db
 
@@ -31,10 +28,7 @@ services:
           name: flux-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: flux-redis
-          property: connectionString
+        sync: false
 
   - type: worker
     name: flux-worker-cpu
@@ -48,10 +42,7 @@ services:
           name: flux-db
           property: connectionString
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: flux-redis
-          property: connectionString
+        sync: false
 
   - type: web
     name: flux-frontend
@@ -70,8 +61,4 @@ databases:
   - name: flux-db
     databaseName: flux_db
     user: user
-    plan: starter 
-
-  - name: flux-redis
-    type: redis
-    plan: free
+    plan: starter
