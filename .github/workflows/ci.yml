@@ -171,6 +171,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Set lower case repository name
+        run: echo "REPO=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+
       - name: Log in to the Container registry
         uses: docker/login-action@v2
         with:
@@ -182,7 +185,7 @@ jobs:
         id: meta-api
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository }}/flux-api
+          images: ghcr.io/${{ env.REPO }}/flux-api
           tags: type=sha,format=long
           
       - name: Build and push API image
@@ -191,14 +194,14 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          tags: ${{ steps.meta-api.outputs.tags }},ghcr.io/${{ github.repository }}/flux-api:latest
+          tags: ${{ steps.meta-api.outputs.tags }},ghcr.io/${{ env.REPO }}/flux-api:latest
           labels: ${{ steps.meta-api.outputs.labels }}
           
       - name: Extract metadata (tags, labels) for Frontend
         id: meta-frontend
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository }}/flux-frontend
+          images: ghcr.io/${{ env.REPO }}/flux-frontend
           tags: type=sha,format=long
           
       - name: Build and push Frontend image
@@ -206,5 +209,5 @@ jobs:
         with:
           context: ./frontend
           push: true
-          tags: ${{ steps.meta-frontend.outputs.tags }},ghcr.io/${{ github.repository }}/flux-frontend:latest
+          tags: ${{ steps.meta-frontend.outputs.tags }},ghcr.io/${{ env.REPO }}/flux-frontend:latest
           labels: ${{ steps.meta-frontend.outputs.labels }}
