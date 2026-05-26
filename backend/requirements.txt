@@ -1,33 +1,48 @@
+# Core Web Framework
 fastapi
 uvicorn
-requests
-httpx
-beautifulsoup4
-redis
 python-dotenv
-scikit-learn
-aiofiles
+pydantic
+tenacity
+
+# Scraper & Parser
+requests
+httpx==0.27.0
+beautifulsoup4
 trafilatura
 lxml_html_clean
+
+# AI, Embeddings & Logic
+scikit-learn
+numpy
 sentence-transformers
+google-generativeai
+
+# Task Queue & Cache
 celery
 redis
-prometheus-fastapi-instrumentator
-fastapi-limiter==0.1.6
-prometheus-client
+
+# Database
 sqlalchemy
 psycopg2-binary
 asyncpg
-google-generativeai
-tenacity
 
+# Observability
+prometheus-fastapi-instrumentator
+prometheus-client
+fastapi-limiter==0.1.6
+
+# Utilities
+aiofiles
+
+# Testing
 pytest==8.0.0
 pytest-mock==3.12.0
 pytest-asyncio==0.23.5
 pytest-cov==7.0.0
-httpx==0.27.0
 testcontainers[postgres]==3.7.1
 
+# Static Analysis & Security
 bandit==1.7.8
 safety==3.7.0
 flake8==7.0.0

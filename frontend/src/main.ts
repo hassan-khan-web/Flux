@@ -141,7 +141,7 @@ async function performSearch(): Promise<void> {
     const mode = isUrl ? 'scrape' : 'search';
 
     try {
-        const response = await fetch('/search', {
+        const response = await fetch('/api/v1/search', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -166,7 +166,7 @@ async function performSearch(): Promise<void> {
         while (true) {
             await new Promise(resolve => setTimeout(resolve, 2000)); // 2s wait
 
-            const pollRes = await fetch(`/tasks/${taskId}`);
+            const pollRes = await fetch(`/api/v1/tasks/${taskId}`);
             if (!pollRes.ok) throw new Error("Polling failed");
 
             const pollData = await pollRes.json();

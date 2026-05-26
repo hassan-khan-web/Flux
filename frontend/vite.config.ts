@@ -29,8 +29,9 @@ export default defineConfig({
         }
     },
     build: {
-        outDir: '../serp-to-context-api/app/static/dist',
+        outDir: '../backend/app/static',
         emptyOutDir: true,
+
         manifest: true,
         rollupOptions: {
             input: resolve(__dirname, 'src/main.ts'),

@@ -10,7 +10,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Pre-download ML models
+COPY scripts/download_models.py ./scripts/
+RUN python ./scripts/download_models.py
+
 COPY . .
+
 
 # Environment variables
 ENV PYTHONPATH=/app
